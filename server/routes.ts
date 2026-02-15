@@ -29,20 +29,25 @@ export async function registerRoutes(
       
       const fetchSuggestions = async (letter: string) => {
         const subQuery = query.replace('*', letter);
-        const url = `http://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(subQuery)}`;
+        // Using a more reliable Google Autocomplete endpoint
+        const url = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(subQuery)}`;
         
         try {
-          const response = await fetch(url);
+          const response = await fetch(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+          });
           if (!response.ok) return null;
           
           const data = await response.json(); 
-          // Format: ["query", ["suggestion1", "suggestion2", ...]]
+          // Format for client=chrome is [query, [suggestions], [descriptions], ...]
           const suggestions = data[1] || [];
           
           return {
             letter,
             query: subQuery,
-            suggestions
+            suggestions: suggestions.slice(0, 10) // Limit to top 10 per letter
           };
         } catch (error) {
           console.error(`Failed to fetch for letter ${letter}:`, error);
