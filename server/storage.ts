@@ -1,38 +1,42 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { searchHistory, savedKeywords, type InsertSearchHistory, type InsertSavedKeyword, type SearchHistory, type SavedKeyword } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // Search History
+  createSearchHistory(entry: InsertSearchHistory): Promise<SearchHistory>;
+  getSearchHistory(): Promise<SearchHistory[]>;
+
+  // Saved Keywords
+  createSavedKeyword(entry: InsertSavedKeyword): Promise<SavedKeyword>;
+  getSavedKeywords(): Promise<SavedKeyword[]>;
+  deleteSavedKeyword(id: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+export class DatabaseStorage implements IStorage {
+  // Search History
+  async createSearchHistory(entry: InsertSearchHistory): Promise<SearchHistory> {
+    const [result] = await db.insert(searchHistory).values(entry).returning();
+    return result;
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getSearchHistory(): Promise<SearchHistory[]> {
+    return await db.select().from(searchHistory).orderBy(desc(searchHistory.createdAt));
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  // Saved Keywords
+  async createSavedKeyword(entry: InsertSavedKeyword): Promise<SavedKeyword> {
+    const [result] = await db.insert(savedKeywords).values(entry).returning();
+    return result;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async getSavedKeywords(): Promise<SavedKeyword[]> {
+    return await db.select().from(savedKeywords).orderBy(desc(savedKeywords.createdAt));
+  }
+
+  async deleteSavedKeyword(id: number): Promise<void> {
+    await db.delete(savedKeywords).where(eq(savedKeywords.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
