@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { Plus, Check, Search } from "lucide-react";
+import { Plus, Check, Search, Copy } from "lucide-react";
 import { useSaveKeyword, useSavedKeywords } from "@/hooks/use-keywords";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface SuggestionGroup {
   letter: string;
@@ -17,6 +18,7 @@ interface KeywordGridProps {
 export function KeywordGrid({ originalQuery, results }: KeywordGridProps) {
   const { mutate: save, isPending } = useSaveKeyword();
   const { data: savedKeywords } = useSavedKeywords();
+  const { toast } = useToast();
 
   // Helper to check if already saved
   const isSaved = (keyword: string) => {
@@ -28,12 +30,30 @@ export function KeywordGrid({ originalQuery, results }: KeywordGridProps) {
     save({ keyword, sourceQuery });
   };
 
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: `"${text}" copied to clipboard`,
+        duration: 2000,
+      });
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Please try again",
+        variant: "destructive",
+        duration: 2000,
+      });
+    }
+  };
+
   // Helper to highlight the dynamic part
   const HighlightedKeyword = ({ text, letter }: { text: string, letter: string }) => {
     // This is a simple heuristic: if the suggestion contains the letter pattern, highlight it
     // A more robust way would be returned from backend, but for now we visualy differentiate
     return (
-      <span className="font-mono text-sm group-hover:text-primary transition-colors truncate block">
+      <span className="font-mono text-sm group-hover:text-primary transition-colors break-words">
         {text}
       </span>
     );
@@ -77,25 +97,39 @@ export function KeywordGrid({ originalQuery, results }: KeywordGridProps) {
                   {group.suggestions.map((suggestion) => {
                     const saved = isSaved(suggestion);
                     return (
-                      <li 
+                      <li
                         key={suggestion}
-                        className="group flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                        className="group flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
                       >
-                        <HighlightedKeyword text={suggestion} letter={group.letter} />
-                        
-                        <button
-                          onClick={() => handleSave(suggestion, group.query)}
-                          disabled={saved || isPending}
-                          className={cn(
-                            "ml-2 p-1.5 rounded-md transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100",
-                            saved 
-                              ? "bg-green-100 text-green-700 opacity-100 cursor-default"
-                              : "bg-primary text-primary-foreground shadow-sm hover:shadow-md hover:bg-primary/90"
-                          )}
-                          aria-label={saved ? "Saved" : "Save keyword"}
-                        >
-                          {saved ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                        </button>
+                        <div className="flex-1 min-w-0">
+                          <HighlightedKeyword text={suggestion} letter={group.letter} />
+                        </div>
+
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button
+                            onClick={() => handleCopy(suggestion)}
+                            className="p-1.5 rounded-md transition-all duration-200 bg-blue-100 text-blue-700 hover:bg-blue-200 hover:shadow-md"
+                            aria-label="Copy keyword"
+                            title="Copy to clipboard"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => handleSave(suggestion, group.query)}
+                            disabled={saved || isPending}
+                            className={cn(
+                              "p-1.5 rounded-md transition-all duration-200",
+                              saved
+                                ? "bg-green-100 text-green-700 cursor-default"
+                                : "bg-primary text-primary-foreground shadow-sm hover:shadow-md hover:bg-primary/90"
+                            )}
+                            aria-label={saved ? "Saved" : "Save keyword"}
+                            title={saved ? "Already saved" : "Save keyword"}
+                          >
+                            {saved ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       </li>
                     );
                   })}
