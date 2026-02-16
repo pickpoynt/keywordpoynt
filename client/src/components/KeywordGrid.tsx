@@ -1,3 +1,4 @@
+import React from "react";
 import { motion } from "framer-motion";
 import { Plus, Check, Search, Copy } from "lucide-react";
 import { useSaveKeyword, useSavedKeywords } from "@/hooks/use-keywords";
@@ -61,7 +62,7 @@ export function KeywordGrid({ originalQuery, results }: KeywordGridProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20">
-      {results.map((group, index) => (
+      {results?.map((group, index) => (
         <motion.div
           key={group.letter}
           initial={{ opacity: 0, y: 20 }}
