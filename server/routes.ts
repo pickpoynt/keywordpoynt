@@ -27,27 +27,31 @@ export async function registerRoutes(
       // We'll fetch in batches to be polite and fast
       // Google Autocomplete URL: http://suggestqueries.google.com/complete/search?client=firefox&q=...
 
+      // Execute requests in batches
+      // Vercel has a 10s timeout, so we need to be fast.
+      const batchSize = 10;
+
       const fetchSuggestions = async (letter: string) => {
         const subQuery = query.replace('*', letter);
-        // Using a more reliable Google Autocomplete endpoint with country code
-        const url = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(subQuery)}&gl=${country || 'US'}`;
+        // Using firefox client often yields better results for automated queries
+        const url = `https://suggestqueries.google.com/complete/search?client=firefox&q=${encodeURIComponent(subQuery)}&gl=${country || 'US'}`;
 
         try {
           const response = await fetch(url, {
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0'
             }
           });
           if (!response.ok) return null;
 
           const data = await response.json();
-          // Format for client=chrome is [query, [suggestions], [descriptions], ...]
+          // Format for client=firefox is [query, [suggestions]]
           const suggestions = data[1] || [];
 
           return {
             letter,
             query: subQuery,
-            suggestions: suggestions.slice(0, 10) // Limit to top 10 per letter
+            suggestions: suggestions.slice(0, 10)
           };
         } catch (error) {
           console.error(`Failed to fetch for letter ${letter}:`, error);
@@ -55,8 +59,6 @@ export async function registerRoutes(
         }
       };
 
-      // Execute requests in batches to avoid rate limits and timeouts
-      const batchSize = 5;
       for (let i = 0; i < alphabet.length; i += batchSize) {
         const batch = alphabet.slice(i, i + batchSize);
         const batchPromises = batch.map(letter => fetchSuggestions(letter));
@@ -68,11 +70,6 @@ export async function registerRoutes(
             results.push(r);
           }
         });
-
-        // Small delay between batches to be polite
-        if (i + batchSize < alphabet.length) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
       }
 
       res.json({
