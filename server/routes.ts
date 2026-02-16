@@ -55,18 +55,25 @@ export async function registerRoutes(
         }
       };
 
-      // Execute all requests
-      // Note: For a production app, we might want to rate limit or use a proxy pool.
-      // For this tool, we'll try to do them all. If it fails, we handle it gracefully.
-      const promises = alphabet.map(letter => fetchSuggestions(letter));
-      const responses = await Promise.all(promises);
+      // Execute requests in batches to avoid rate limits and timeouts
+      const batchSize = 5;
+      for (let i = 0; i < alphabet.length; i += batchSize) {
+        const batch = alphabet.slice(i, i + batchSize);
+        const batchPromises = batch.map(letter => fetchSuggestions(letter));
+        const batchResults = await Promise.all(batchPromises);
 
-      // Filter out failed requests and empty results
-      responses.forEach(r => {
-        if (r && r.suggestions.length > 0) {
-          results.push(r);
+        // Filter out failed requests and empty results
+        batchResults.forEach(r => {
+          if (r && r.suggestions.length > 0) {
+            results.push(r);
+          }
+        });
+
+        // Small delay between batches to be polite
+        if (i + batchSize < alphabet.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
-      });
+      }
 
       res.json({
         originalQuery: query,
