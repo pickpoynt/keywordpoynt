@@ -18,6 +18,7 @@ export const api = {
       path: '/api/keywords/search' as const,
       input: z.object({
         query: z.string().min(1, "Query is required").refine(s => s.includes('*'), "Query must contain an asterisk (*) wildcard"),
+        country: z.string().length(2).optional().default('US'),
       }),
       responses: {
         200: z.object({

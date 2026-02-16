@@ -6,13 +6,13 @@ import { type InsertSavedKeyword } from "@shared/schema";
 // Search Keywords
 export function useSearchKeywords() {
   const { toast } = useToast();
-  
+
   return useMutation({
-    mutationFn: async (query: string) => {
+    mutationFn: async ({ query, country }: { query: string; country?: string }) => {
       const res = await fetch(api.keywords.search.path, {
         method: api.keywords.search.method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, country }),
         credentials: "include",
       });
 
@@ -69,7 +69,7 @@ export function useSaveKeyword() {
         body: JSON.stringify(data),
         credentials: "include",
       });
-      
+
       if (!res.ok) throw new Error("Failed to save keyword");
       return await res.json();
     },
@@ -97,11 +97,11 @@ export function useDeleteSavedKeyword() {
   return useMutation({
     mutationFn: async (id: number) => {
       const url = buildUrl(api.saved.delete.path, { id });
-      const res = await fetch(url, { 
+      const res = await fetch(url, {
         method: api.saved.delete.method,
-        credentials: "include" 
+        credentials: "include"
       });
-      
+
       if (!res.ok) throw new Error("Failed to delete keyword");
     },
     onSuccess: () => {

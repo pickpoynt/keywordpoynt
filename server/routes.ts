@@ -16,7 +16,7 @@ export async function registerRoutes(
   // === Keyword Search Logic ===
   app.post(api.keywords.search.path, async (req, res) => {
     try {
-      const { query } = api.keywords.search.input.parse(req.body);
+      const { query, country } = api.keywords.search.input.parse(req.body);
 
       // Save to history
       await storage.createSearchHistory({ query });
@@ -26,12 +26,12 @@ export async function registerRoutes(
 
       // We'll fetch in batches to be polite and fast
       // Google Autocomplete URL: http://suggestqueries.google.com/complete/search?client=firefox&q=...
-      
+
       const fetchSuggestions = async (letter: string) => {
         const subQuery = query.replace('*', letter);
-        // Using a more reliable Google Autocomplete endpoint
-        const url = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(subQuery)}`;
-        
+        // Using a more reliable Google Autocomplete endpoint with country code
+        const url = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(subQuery)}&gl=${country || 'US'}`;
+
         try {
           const response = await fetch(url, {
             headers: {
@@ -39,11 +39,11 @@ export async function registerRoutes(
             }
           });
           if (!response.ok) return null;
-          
-          const data = await response.json(); 
+
+          const data = await response.json();
           // Format for client=chrome is [query, [suggestions], [descriptions], ...]
           const suggestions = data[1] || [];
-          
+
           return {
             letter,
             query: subQuery,
