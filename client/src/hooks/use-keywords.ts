@@ -17,11 +17,14 @@ export function useSearchKeywords() {
       });
 
       if (!res.ok) {
-        if (res.status === 400) {
+        let errorMessage = "Failed to fetch suggestions";
+        try {
           const error = await res.json();
-          throw new Error(error.message || "Invalid query format");
+          errorMessage = error.error || error.message || errorMessage;
+        } catch {
+          // Ignore JSON parse error, use default message
         }
-        throw new Error("Failed to fetch suggestions");
+        throw new Error(errorMessage);
       }
 
       // We need to parse this manually because the response schema 

@@ -15,6 +15,17 @@ interface KeywordGridProps {
   results: SuggestionGroup[];
 }
 
+// Helper to highlight the dynamic part
+const HighlightedKeyword = ({ text, letter }: { text: string; letter: string }) => {
+  // This is a simple heuristic: if the suggestion contains the letter pattern, highlight it
+  // A more robust way would be returned from backend, but for now we visualy differentiate
+  return (
+    <span className="font-mono text-sm group-hover:text-primary transition-colors break-words">
+      {text}
+    </span>
+  );
+};
+
 export function KeywordGrid({ originalQuery, results }: KeywordGridProps) {
   const { mutate: save, isPending } = useSaveKeyword();
   const { data: savedKeywords } = useSavedKeywords();
@@ -46,17 +57,6 @@ export function KeywordGrid({ originalQuery, results }: KeywordGridProps) {
         duration: 2000,
       });
     }
-  };
-
-  // Helper to highlight the dynamic part
-  const HighlightedKeyword = ({ text, letter }: { text: string, letter: string }) => {
-    // This is a simple heuristic: if the suggestion contains the letter pattern, highlight it
-    // A more robust way would be returned from backend, but for now we visualy differentiate
-    return (
-      <span className="font-mono text-sm group-hover:text-primary transition-colors break-words">
-        {text}
-      </span>
-    );
   };
 
   return (
